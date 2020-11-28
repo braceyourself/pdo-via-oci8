@@ -590,23 +590,22 @@ class Statement extends PDOStatement
     /**
      * Returns an array containing all of the result set rows.
      *
-     * @param int $fetchMode Controls the contents of the returned array as
-     *   documented in PDOStatement::fetch.
-     * @param mixed $fetchArgument This argument has a different meaning
-     *   depending on the value of the fetchMode parameter.
-     * @param array $ctorArgs [optional] Arguments of custom class constructor
-     *   when the fetch_style parameter is PDO::FETCH_CLASS.
+     * @param int $mode
+     * @param mixed ...$args
      * @return array Array containing all of the remaining rows in the result
      *   set. The array represents each row as either an array of column values
      *   or an object with properties corresponding to each column name.
      */
-    public function fetchAll($fetchMode = null, $fetchArgument = null, $ctorArgs = [])
+    public function fetchAll(int $mode = PDO::FETCH_BOTH, mixed ...$args)
     {
-        if (is_null($fetchMode)) {
+        $fetchArgument = $args['fetchArgument'] ?? null;
+        $ctorArgs = $args['ctorArgs'] ?? null;
+
+        if (is_null($mode)) {
             $fetchMode = $this->fetchMode;
         }
 
-        $this->setFetchMode($fetchMode, $fetchArgument, $ctorArgs);
+        $this->setFetchMode($mode, $fetchArgument, $ctorArgs);
 
         $this->results = [];
         while ($row = $this->fetch()) {
@@ -757,22 +756,22 @@ class Statement extends PDOStatement
     /**
      * Set the default fetch mode for this statement.
      *
-     * @param int|null $fetchMode The fetch mode must be one of the
-     *   PDO::FETCH_* constants.
-     * @param mixed|null $modeArg Column number, class name or object.
-     * @param array|null $ctorArgs Constructor arguments.
-     * @throws Oci8Exception
+     * @param int $mode
+     * @param mixed ...$args
      * @return bool TRUE on success or FALSE on failure.
      */
-    public function setFetchMode($fetchMode, $modeArg = null, $ctorArgs = [])
+    public function setFetchMode(int $mode, mixed ...$args)
     {
+        $ctorArgs = $args['ctorArgs'] ?? null;
+        $modeArg = $args['modeArg'] ?? null;
+
         // See which fetch mode we have
-        switch ($fetchMode) {
+        switch ($mode) {
             case PDO::FETCH_ASSOC:
             case PDO::FETCH_NUM:
             case PDO::FETCH_BOTH:
             case PDO::FETCH_OBJ:
-                $this->fetchMode       = $fetchMode;
+                $this->fetchMode       = $mode;
                 $this->fetchColNo      = 0;
                 $this->fetchClassName  = '\stdClass';
                 $this->fetchCtorArgs   = [];
@@ -780,11 +779,11 @@ class Statement extends PDOStatement
                 break;
             case PDO::FETCH_CLASS:
             case PDO::FETCH_CLASS | PDO::FETCH_PROPS_LATE:
-                $this->fetchMode      = $fetchMode;
+                $this->fetchMode      = $mode;
                 $this->fetchColNo     = 0;
                 $this->fetchClassName = '\stdClass';
                 if ($modeArg) {
-                    $this->fetchClassName = $modeArg;
+                    $this->fetchClassName = $args['modeArg'];
                 }
                 $this->fetchCtorArgs   = $ctorArgs;
                 $this->fetchIntoObject = null;
@@ -795,14 +794,14 @@ class Statement extends PDOStatement
                         '$modeArg must be instance of an object'
                     );
                 }
-                $this->fetchMode       = $fetchMode;
+                $this->fetchMode       = $mode;
                 $this->fetchColNo      = 0;
                 $this->fetchClassName  = '\stdClass';
                 $this->fetchCtorArgs   = [];
                 $this->fetchIntoObject = $modeArg;
                 break;
             case PDO::FETCH_COLUMN:
-                $this->fetchMode       = $fetchMode;
+                $this->fetchMode       = $mode;
                 $this->fetchColNo      = (int) $modeArg;
                 $this->fetchClassName  = '\stdClass';
                 $this->fetchCtorArgs   = [];
